@@ -1,0 +1,50 @@
+Nome: William Torres Pereira da Silva
+Matrícula: 20210026160
+Disciplina: LPII - 2026.1
+Trabalho: Exercício A – Sistema de Backup Distribuído
+
+----------------------------------------------------------------------
+Relatório Breve
+----------------------------------------------------------------------
+
+(a) Por que o sem_post está antes do registro no manifesto (e não depois)?
+    O que aconteceria se invertesse?
+
+    O semáforo "rede" controla o número de backups simultâneos, limitado
+    a K=3. A operação de backup (simulada pelo usleep) é a única que
+    efetivamente utiliza a largura de banda. O registro no manifesto é
+    uma operação de memória compartilhada, protegida por mutex, que não
+    consome recursos de rede.
+
+    Colocar sem_post antes do registro libera imediatamente a vaga na
+    rede tão logo o backup termina. Isso permite que outros agentes
+    iniciem seus backups enquanto o agente atual ainda está escrevendo
+    no manifesto, maximizando a concorrência e o throughput do sistema.
+
+    Se invertermos a ordem (registro antes de sem_post), o agente
+    manteria a vaga durante todo o tempo de registro, incluindo a
+    espera pelo mutex e a impressão de mensagens. Isso reduziria a
+    vazão, pois outros agentes ficariam bloqueados mesmo com a rede
+    ociosa. Não há deadlock nessa inversão, mas o desempenho seria
+    prejudicado.
+
+(b) Se a taxa de falha fosse 80% em vez de 20%, o que aconteceria com
+    o sistema? Pode travar?
+
+    Com 80% de falha, cada agente precisaria, em média, de 5 tentativas
+    para obter sucesso em cada rodada. O sistema continuaria funcionando
+    sem deadlock, pois o semáforo é liberado antes de cada retentativa
+    e a barreira só é ultrapassada após o sucesso. Portanto, não há
+    espera circular que cause travamento.
+
+    Entretanto, o número de entradas no manifesto cresceria
+    significativamente (muitas falhas registradas). Se o total de
+    tentativas ultrapassar o limite de 200 entradas, o programa pode
+    corromper a memória ou terminar abruptamente. Além disso, o tempo
+    total de execução aumentaria consideravelmente. Portanto, o sistema
+    não trava, mas pode ficar extremamente lento e estourar o buffer do
+    manifesto se a taxa de falha for muito elevada.
+
+----------------------------------------------------------------------
+(Relatório elaborado em 15/07/2026)
+----------------------------------------------------------------------
